@@ -2,18 +2,13 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import {
-  fetchFormByKey,
-  fetchForms,
-  submitFormDirect,
-  submitFormViaProxy,
-} from "../client.js";
+import { fetchFormByKey, fetchForms, submitFormDirect } from "../client.js";
 import { useBoneroContext } from "../context.js";
 import { boneroKeys } from "../query-keys.js";
 import type { BoneroForm } from "../types.js";
 
 export function useForm() {
-  const { config, formSubmitProxyUrl } = useBoneroContext();
+  const { config } = useBoneroContext();
   const queryClient = useQueryClient();
 
   const get = useCallback(
@@ -57,10 +52,6 @@ export function useForm() {
       const form = await get(key);
       if (!form) {
         throw new Error(`Form bulunamadı: ${key}`);
-      }
-
-      if (typeof window !== "undefined" && formSubmitProxyUrl) {
-        return submitFormViaProxy(formSubmitProxyUrl, key, data);
       }
 
       return submitFormDirect(config, form, data);

@@ -2,6 +2,8 @@
 
 Bonero Customer API için React client paketi. TanStack Query, nuqs ve provider tabanlı dataset önbelleği ile makale, form ve dataset yönetimini tek yerden sağlar.
 
+**API adresi:** `https://api.bonero.tr` (sabit — yalnızca local geliştirmede override edilir)
+
 ## Kurulum
 
 ```bash
@@ -18,7 +20,7 @@ Peer bağımlılıklar:
 
 ### Provider
 
-Uygulamayı `BoneroProvider` ile sarın. Provider tüm dataset'leri ve form listesini önceden yükler.
+Uygulamayı `BoneroProvider` ile sarın. Provider API'den tüm dataset anahtarlarını listeler, verilerini ve form listesini önceden yükler.
 
 ```tsx
 // app/layout.tsx veya client wrapper
@@ -26,25 +28,35 @@ import { BoneroProvider } from "@linqon/bonero-core";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
-    <BoneroProvider
-      apiUrl={process.env.NEXT_PUBLIC_BONERO_API_URL}
-      tenantHost={process.env.NEXT_PUBLIC_BONERO_TENANT_HOST}
-      datasetKeys={["team", "faqs", "youtube-playlists", "youtube-videos"]}
-      formSubmitProxyUrl="/api/forms/submit"
-      staleTime={60_000}
-    >
+    <BoneroProvider apiKey={process.env.NEXT_PUBLIC_BONERO_API_KEY}>
       {children}
     </BoneroProvider>
   );
 }
 ```
 
-Ortam değişkenleri (provider prop verilmezse otomatik okunur):
+### Yapılandırma
+
+| Alan | Zorunlu | Açıklama |
+|---|---|---|
+| `apiKey` | Evet | Tenant API anahtarı (`x-api-key` header) |
+| `apiUrl` | Hayır | Yalnızca local test. Varsayılan: `https://api.bonero.tr` |
+
+Ortam değişkenleri:
 
 | Değişken | Açıklama |
 |---|---|
-| `NEXT_PUBLIC_BONERO_API_URL` | Bonero API taban URL'i |
-| `NEXT_PUBLIC_BONERO_TENANT_HOST` | `x-tenant-host` header değeri |
+| `NEXT_PUBLIC_BONERO_API_KEY` | Client tarafı API anahtarı |
+| `BONERO_API_KEY` | Server Components için API anahtarı |
+| `BONERO_API_URL` / `NEXT_PUBLIC_BONERO_API_URL` | **Yalnızca local geliştirme** — örn. `http://localhost:6580` |
+
+```bash
+# .env.local — yalnızca local Bonero API kullanırken
+BONERO_API_URL=http://localhost:6580
+NEXT_PUBLIC_BONERO_API_KEY=bnr_...
+```
+
+Üretimde `apiUrl` vermenize gerek yok; paket her zaman `https://api.bonero.tr` kullanır.
 
 ### Dataset erişimi
 
@@ -69,23 +81,14 @@ export function SiteFooter() {
 
 - `youtube-playlists` → `youtubePlaylists`, `youtube`
 - `youtube-videos` → `youtubeVideos`
-- İlk item alanlarına kısayol: `dataSet.youtube.url` (proxy ile)
-
-```tsx
-const faqs = dataSet.faqs?.items;
-const url = dataSet.youtubePlaylists?.get("url", 0);
-```
+- İlk item alanlarına kısayol: `dataSet.youtube.get("url")`
 
 ### useDataSet
-
-Belirli bir dataset için reaktif erişim:
 
 ```tsx
 import { useDataSet } from "@linqon/bonero-core";
 
 const dataset = useDataSet("faqs");
-// dataset.items, dataset.isLoading, dataset.refetch
-
 const all = useDataSet();
 await all.get("team");
 ```
@@ -97,17 +100,15 @@ import { useArticle } from "@linqon/bonero-core";
 
 const article = useArticle();
 
-// Imperatif
 const list = await article.fetch({ page: 1, limit: 10, type: "CONTENT" });
 const post = await article.get("makale-slug");
 
-// Reaktif
 const { data } = article.useList({ type: "PROJECT", page: 1, limit: 50 });
-const { data: detail } = article.useDetail("proje-slug");
-const { data: categories } = article.useCategories();
 ```
 
 ### useForm
+
+Formlar doğrudan `https://api.bonero.tr` üzerinden gönderilir (proxy yok):
 
 ```tsx
 import { useForm } from "@linqon/bonero-core";
@@ -116,83 +117,58 @@ const form = useForm();
 
 const definition = await form.get("iletisim");
 await form.submit("iletisim", { ad: "Ali", email: "ali@ornek.com" });
-
-const { data } = form.useGet("kariyer");
-const { data: forms } = form.useList();
 ```
 
-`formSubmitProxyUrl` verilmişse istemci tarafında proxy üzerinden gönderir; aksi halde doğrudan Bonero API'ye POST atar.
-
 ## Server Components (Next.js)
-
-React hook'ları içermeyen server entry:
 
 ```tsx
 import {
   resolveBoneroConfig,
   fetchDatasetData,
-  fetchArticles,
 } from "@linqon/bonero-core/server";
 
-const config = resolveBoneroConfig();
+const config = resolveBoneroConfig({
+  apiKey: process.env.BONERO_API_KEY,
+});
 
 export default async function Page() {
   const faqs = await fetchDatasetData(config, "faqs");
-  const articles = await fetchArticles(config, { type: "CONTENT", page: 1, limit: 10 });
-
   return (/* ... */);
 }
 ```
 
-## API özeti
+## Bonero API kimlik doğrulama
 
-### Client (`@linqon/bonero-core`)
+Customer endpoint'leri (`/customer/*`) tenant'ı `x-api-key` header'ı ile çözer:
+
+```http
+GET https://api.bonero.tr/customer/datasets
+x-api-key: bnr_...
+```
+
+API anahtarı Bonero panelinden veya seed script'lerinden alınır.
+
+## API özeti
 
 | Export | Açıklama |
 |---|---|
-| `BoneroProvider` | TanStack Query + nuqs + dataset prefetch |
-| `useBonero()` | `{ config, dataSet, formSubmitProxyUrl }` |
+| `BoneroProvider` | TanStack Query + nuqs + tüm dataset prefetch |
+| `useBonero()` | `{ config, dataSet }` |
 | `useArticle()` | Makale listesi / detay |
 | `useDataSet()` | Dataset erişimi |
-| `useForm()` | Form tanımı ve gönderim |
-| `boneroFetch` | Düşük seviye HTTP client |
-| `boneroKeys` | TanStack Query key fabrikası |
-| `createDataSetAccessor` | Dataset proxy oluşturucu |
+| `useForm()` | Form tanımı ve doğrudan gönderim |
+| `BONERO_API_URL` | `https://api.bonero.tr` sabiti |
 
 ### Server (`@linqon/bonero-core/server`)
 
-`boneroFetch`, `fetchDatasetData`, `fetchDatasetList`, `fetchArticles`, `fetchArticleBySlug`, `fetchForms`, `fetchFormByKey`, `submitFormDirect`, `resolveBoneroConfig` ve ilgili tipler.
-
-## Next.js monorepo notu
-
-Yerel `file:` bağımlılığı ile Turbopack kullanırken `next.config.ts` örneği:
-
-```ts
-import path from "node:path";
-import type { NextConfig } from "next";
-
-const repoRoot = path.resolve(process.cwd(), "../..");
-
-const nextConfig: NextConfig = {
-  transpilePackages: ["@linqon/bonero-core"],
-  turbopack: {
-    root: repoRoot,
-    resolveAlias: {
-      "@linqon/bonero-core": "bony/bonero-core/dist/index.js",
-      "@linqon/bonero-core/server": "bony/bonero-core/dist/server.js",
-    },
-  },
-};
-
-export default nextConfig;
-```
+`boneroFetch`, `fetchDatasetData`, `fetchArticles`, `resolveBoneroConfig` ve ilgili tipler — React hook'ları içermez.
 
 ## Geliştirme
 
 ```bash
 npm install
 npm run build
-npm run dev      # tsup watch
+npm run dev
 npm run typecheck
 ```
 

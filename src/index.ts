@@ -6,6 +6,8 @@ export { useDataSet } from "./hooks/use-dataset.js";
 export { useForm } from "./hooks/use-form.js";
 export type { BoneroForm } from "./hooks/use-form.js";
 
+export { BONERO_API_URL, BONERO_QUERY_STALE_TIME } from "./constants.js";
+
 export {
   boneroFetch,
   fetchArticleBySlug,
@@ -18,7 +20,6 @@ export {
   getFormSubmitUrl,
   resolveBoneroConfig,
   submitFormDirect,
-  submitFormViaProxy,
 } from "./client.js";
 
 export { boneroKeys } from "./query-keys.js";
@@ -40,5 +41,4 @@ export type {
   DatasetItem,
   DatasetMeta,
   FormField,
-  SubmitFormOptions,
 } from "./types.js";

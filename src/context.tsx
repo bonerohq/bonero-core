@@ -5,7 +5,6 @@ import type { BoneroConfig, DataSetStore } from "./types.js";
 
 export type BoneroContextValue = {
   config: BoneroConfig;
-  formSubmitProxyUrl?: string;
   dataSet: DataSetStore;
 };
 

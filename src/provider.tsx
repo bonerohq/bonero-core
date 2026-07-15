@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { useMemo, useState, type ReactNode } from "react";
+import { BONERO_QUERY_STALE_TIME } from "./constants.js";
 import {
   fetchDatasetData,
   fetchDatasetList,
@@ -21,47 +22,42 @@ import type { BoneroProviderProps, DatasetData } from "./types.js";
 function BoneroDataLoader({
   children,
   config,
-  formSubmitProxyUrl,
-  datasetKeys,
-  staleTime,
 }: {
   children: ReactNode;
   config: ReturnType<typeof resolveBoneroConfig>;
-  formSubmitProxyUrl?: string;
-  datasetKeys?: string[];
-  staleTime: number;
 }) {
+  const hasApiKey = Boolean(config.apiKey);
+
   const listQuery = useQueries({
     queries: [
       {
         queryKey: boneroKeys.datasets.list(),
         queryFn: () => fetchDatasetList(config),
-        staleTime,
+        staleTime: BONERO_QUERY_STALE_TIME,
+        enabled: hasApiKey,
       },
       {
         queryKey: boneroKeys.forms.list(),
         queryFn: () => fetchForms(config),
-        staleTime,
+        staleTime: BONERO_QUERY_STALE_TIME,
+        enabled: hasApiKey,
       },
     ],
   });
 
   const resolvedKeys = useMemo(() => {
-    const fromApi =
-      listQuery[0]?.data?.datasets
-        ?.map((dataset) => dataset.key)
-        .filter((key): key is string => Boolean(key)) ?? [];
-
-    const merged = new Set<string>([...(datasetKeys ?? []), ...fromApi]);
-    return [...merged];
-  }, [datasetKeys, listQuery[0]?.data]);
+    const datasets = listQuery[0]?.data?.datasets ?? [];
+    return datasets
+      .map((dataset) => dataset.key)
+      .filter((key): key is string => Boolean(key));
+  }, [listQuery[0]?.data]);
 
   const datasetQueries = useQueries({
     queries: resolvedKeys.map((key) => ({
       queryKey: boneroKeys.datasets.data(key),
       queryFn: () => fetchDatasetData(config, key),
-      staleTime,
-      enabled: resolvedKeys.length > 0,
+      staleTime: BONERO_QUERY_STALE_TIME,
+      enabled: hasApiKey && resolvedKeys.length > 0,
     })),
   });
 
@@ -79,9 +75,10 @@ function BoneroDataLoader({
     datasetQueries.some((query) => query.isLoading);
 
   const isReady =
-    listQuery.every((query) => query.isSuccess) &&
-    (resolvedKeys.length === 0 ||
-      datasetQueries.every((query) => query.isSuccess || query.isError));
+    !hasApiKey ||
+    (listQuery.every((query) => query.isSuccess) &&
+      (resolvedKeys.length === 0 ||
+        datasetQueries.every((query) => query.isSuccess || query.isError)));
 
   const dataSet = useMemo(
     () => buildDataSetStore(datasets, { isLoading, isReady }),
@@ -91,10 +88,9 @@ function BoneroDataLoader({
   const value = useMemo(
     () => ({
       config,
-      formSubmitProxyUrl,
       dataSet,
     }),
-    [config, formSubmitProxyUrl, dataSet],
+    [config, dataSet],
   );
 
   return (
@@ -104,16 +100,12 @@ function BoneroDataLoader({
 
 export function BoneroProvider({
   children,
+  apiKey,
   apiUrl,
-  tenantHost,
-  revalidateSeconds,
-  staleTime = 60_000,
-  formSubmitProxyUrl,
-  datasetKeys,
 }: BoneroProviderProps) {
   const config = useMemo(
-    () => resolveBoneroConfig({ apiUrl, tenantHost, revalidateSeconds }),
-    [apiUrl, tenantHost, revalidateSeconds],
+    () => resolveBoneroConfig({ apiKey, apiUrl }),
+    [apiKey, apiUrl],
   );
 
   const [queryClient] = useState(
@@ -121,7 +113,7 @@ export function BoneroProvider({
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime,
+            staleTime: BONERO_QUERY_STALE_TIME,
             refetchOnWindowFocus: false,
             retry: 1,
           },
@@ -132,14 +124,7 @@ export function BoneroProvider({
   return (
     <QueryClientProvider client={queryClient}>
       <NuqsAdapter>
-        <BoneroDataLoader
-          config={config}
-          formSubmitProxyUrl={formSubmitProxyUrl}
-          datasetKeys={datasetKeys}
-          staleTime={staleTime}
-        >
-          {children}
-        </BoneroDataLoader>
+        <BoneroDataLoader config={config}>{children}</BoneroDataLoader>
       </NuqsAdapter>
     </QueryClientProvider>
   );

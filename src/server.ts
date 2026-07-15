@@ -10,8 +10,9 @@ export {
   getFormSubmitUrl,
   resolveBoneroConfig,
   submitFormDirect,
-  submitFormViaProxy,
 } from "./client.js";
+
+export { BONERO_API_URL } from "./constants.js";
 
 export { boneroKeys } from "./query-keys.js";
 

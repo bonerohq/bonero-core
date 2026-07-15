@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 export type BoneroConfig = {
   apiUrl: string;
-  tenantHost: string;
+  apiKey: string;
   revalidateSeconds?: number;
 };
 
@@ -100,22 +100,15 @@ export type ArticleCategoriesResponse = {
   categories: Array<ArticleCategory & { description?: string | null; lessonCount?: number }>;
 };
 
-export type SubmitFormOptions = {
-  /** İstemci tarafında proxy endpoint (örn. /api/forms/submit) */
-  proxyUrl?: string;
-};
-
 export type BoneroProviderProps = {
   children: ReactNode;
+  /** Bonero tenant API anahtarı */
+  apiKey?: string;
+  /**
+   * Yalnızca local geliştirme için. Üretimde `https://api.bonero.tr` kullanılır.
+   * `BONERO_API_URL` veya `NEXT_PUBLIC_BONERO_API_URL` ile de override edilebilir.
+   */
   apiUrl?: string;
-  tenantHost?: string;
-  revalidateSeconds?: number;
-  /** TanStack Query staleTime (ms). Varsayılan: 60_000 */
-  staleTime?: number;
-  /** Form gönderimi için istemci proxy URL'i */
-  formSubmitProxyUrl?: string;
-  /** Prefetch edilecek dataset anahtarları. Boşsa API'den tümü çekilir. */
-  datasetKeys?: string[];
 };
 
 export type DataSetAccessor = {

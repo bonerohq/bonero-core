@@ -1,3 +1,4 @@
+import { BONERO_API_URL } from "./constants.js";
 import type {
   ArticleCategoriesResponse,
   ArticleFetchParams,
@@ -26,12 +27,12 @@ export function resolveBoneroConfig(
       overrides?.apiUrl ??
       readEnv("NEXT_PUBLIC_BONERO_API_URL") ??
       readEnv("BONERO_API_URL") ??
-      "http://localhost:6580",
-    tenantHost:
-      overrides?.tenantHost ??
-      readEnv("NEXT_PUBLIC_BONERO_TENANT_HOST") ??
-      readEnv("BONERO_TENANT_HOST") ??
-      "link.tafu.tr",
+      BONERO_API_URL,
+    apiKey:
+      overrides?.apiKey ??
+      readEnv("NEXT_PUBLIC_BONERO_API_KEY") ??
+      readEnv("BONERO_API_KEY") ??
+      "",
     revalidateSeconds: overrides?.revalidateSeconds ?? 60,
   };
 }
@@ -41,11 +42,15 @@ export async function boneroFetch<T>(
   path: string,
   init?: RequestInit & BoneroFetchOptions,
 ): Promise<T> {
+  if (!config.apiKey) {
+    throw new Error("Bonero API key eksik. BoneroProvider'a apiKey verin veya BONERO_API_KEY tanımlayın.");
+  }
+
   const { revalidate, cache, ...requestInit } = init ?? {};
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "x-tenant-host": config.tenantHost,
+    "x-api-key": config.apiKey,
     ...(requestInit.headers as Record<string, string> | undefined),
   };
 
@@ -142,7 +147,10 @@ export async function submitFormDirect(
 ) {
   const response = await fetch(getFormSubmitUrl(config, form.id), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": config.apiKey,
+    },
     body: JSON.stringify({ data }),
     cache: "no-store",
   });
@@ -151,29 +159,6 @@ export async function submitFormDirect(
     const body = await response.text().catch(() => "");
     throw new Error(
       `Form gönderilemedi (${response.status})${body ? `: ${body.slice(0, 200)}` : ""}`,
-    );
-  }
-
-  return response.json();
-}
-
-export async function submitFormViaProxy(
-  proxyUrl: string,
-  formKey: string,
-  data: Record<string, string>,
-) {
-  const response = await fetch(proxyUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ formKey, data }),
-  });
-
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as {
-      error?: string;
-    } | null;
-    throw new Error(
-      payload?.error ?? `Form gönderilemedi (${response.status})`,
     );
   }
 
