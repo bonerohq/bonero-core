@@ -1,36 +1,27 @@
 export {
-  boneroFetch,
-  fetchArticleBySlug,
-  fetchArticleCategories,
-  fetchArticles,
-  fetchDatasetData,
-  fetchDatasetList,
-  fetchFormByKey,
-  fetchForms,
-  getFormSubmitUrl,
-  resolveBoneroConfig,
-  submitFormDirect,
-} from "./client.js";
-
-export { BONERO_API_URL } from "./constants.js";
-
-export { boneroKeys } from "./query-keys.js";
-
-export {
-  aliasToDatasetKey,
+  Bonero,
+  createBoneroAccessor,
+  getBoneroAccessor,
+  type BoneroAccessor,
+  resolveInitialData,
   createDataSetAccessor,
-  datasetKeyToAlias,
-} from "./utils/dataset-accessor.js";
-
-export type {
-  ArticleCategoriesResponse,
-  ArticlesListResponse,
-  BoneroArticle,
-  BoneroConfig,
-  BoneroFetchOptions,
-  BoneroForm,
-  DatasetData,
-  DatasetItem,
-  DatasetMeta,
-  FormField,
-} from "./types.js";
+  createDataSetAccessorMap,
+  getBoneroRequestStore,
+  resolveBoneroRequestStore,
+  setBoneroRequestStore,
+  type BoneroRequestStore,
+} from "./server/index";
+export { getBoneroConfig } from "./config";
+export { getArticles, getArticle, getArticleCategories } from "./server/article";
+export {
+  getArticlePage,
+  getArticleBySlug,
+  getLatestArticles,
+  getRecommendedArticles,
+  ARTICLES_PER_PAGE,
+  type ArticlePageData,
+  type ArticlePageParams,
+} from "./feature/article/article.data";
+export { generateBoneroSitemap, buildSitemapFromArticles, type SitemapEntry } from "./server/sitemap";
+export { BONERO_API_URL } from "./constants";
+export type * from "./types";

@@ -1,26 +1,22 @@
 # @linqon/bonero-core
 
-Bonero Customer API için React client paketi. TanStack Query, nuqs ve provider tabanlı dataset önbelleği ile makale, form ve dataset yönetimini tek yerden sağlar.
+Bonero Customer API için React client paketi. Provider tabanlı dataset önbelleği ile makale, form ve dataset yönetimini tek yerden sağlar.
 
 **API adresi:** `https://api.bonero.tr` (sabit — yalnızca local geliştirmede override edilir)
 
 ## Kurulum
 
 ```bash
-npm install @linqon/bonero-core @tanstack/react-query nuqs
+npm install @linqon/bonero-core react react-dom
 ```
 
-Peer bağımlılıklar:
-
-- `react` / `react-dom` ^18 veya ^19
-- `@tanstack/react-query` ^5
-- `nuqs` ^2
+Next.js projelerinde analytics bileşenleri için `next` peer bağımlılığı önerilir.
 
 ## Hızlı başlangıç
 
 ### Provider
 
-Uygulamayı `BoneroProvider` ile sarın. Provider API'den tüm dataset anahtarlarını listeler, verilerini ve form listesini önceden yükler.
+Uygulamayı `BoneroProvider` ile sarın. Provider API'den tüm dataset verilerini ve form listesini önceden yükler.
 
 ```tsx
 // app/layout.tsx veya client wrapper
@@ -28,11 +24,17 @@ import { BoneroProvider } from "@linqon/bonero-core";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
-    <BoneroProvider apiKey={process.env.NEXT_PUBLIC_BONERO_API_KEY}>
+    <BoneroProvider apiKey={process.env.NEXT_PUBLIC_BONERO_API_KEY!}>
       {children}
     </BoneroProvider>
   );
 }
+```
+
+Alternatif import:
+
+```tsx
+import { BoneroProvider } from "@linqon/bonero-core/provider";
 ```
 
 ### Yapılandırma
@@ -41,6 +43,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 |---|---|---|
 | `apiKey` | Evet | Tenant API anahtarı (`x-api-key` header) |
 | `apiUrl` | Hayır | Yalnızca local test. Varsayılan: `https://api.bonero.tr` |
+| `pixelId` | Hayır | Meta Pixel ID (analytics) |
+| `tagManagerId` | Hayır | Google Tag Manager ID (analytics) |
 
 Ortam değişkenleri:
 
@@ -50,15 +54,9 @@ Ortam değişkenleri:
 | `BONERO_API_KEY` | Server Components için API anahtarı |
 | `BONERO_API_URL` / `NEXT_PUBLIC_BONERO_API_URL` | **Yalnızca local geliştirme** — örn. `http://localhost:6580` |
 
-```bash
-# .env.local — yalnızca local Bonero API kullanırken
-BONERO_API_URL=http://localhost:6580
-NEXT_PUBLIC_BONERO_API_KEY=bnr_...
-```
+## Client API
 
-Üretimde `apiUrl` vermenize gerek yok; paket her zaman `https://api.bonero.tr` kullanır.
-
-### Dataset erişimi
+### useBonero
 
 Provider yüklendikten sonra dataset verilerine doğrudan erişin:
 
@@ -68,29 +66,13 @@ Provider yüklendikten sonra dataset verilerine doğrudan erişin:
 import { useBonero } from "@linqon/bonero-core";
 
 export function SiteFooter() {
-  const { dataSet } = useBonero();
+  const { dataSet, forms, isReady, isLoading, error } = useBonero();
 
   const youtubeUrl = dataSet.youtube?.get("url") as string | undefined;
   const team = dataSet.team?.items ?? [];
 
   return (/* ... */);
 }
-```
-
-**Alias kuralları**
-
-- `youtube-playlists` → `youtubePlaylists`, `youtube`
-- `youtube-videos` → `youtubeVideos`
-- İlk item alanlarına kısayol: `dataSet.youtube.get("url")`
-
-### useDataSet
-
-```tsx
-import { useDataSet } from "@linqon/bonero-core";
-
-const dataset = useDataSet("faqs");
-const all = useDataSet();
-await all.get("team");
 ```
 
 ### useArticle
@@ -102,13 +84,12 @@ const article = useArticle();
 
 const list = await article.fetch({ page: 1, limit: 10, type: "CONTENT" });
 const post = await article.get("makale-slug");
-
-const { data } = article.useList({ type: "PROJECT", page: 1, limit: 50 });
+const categories = await article.fetchCategories();
 ```
 
 ### useForm
 
-Formlar doğrudan `https://api.bonero.tr` üzerinden gönderilir (proxy yok):
+Formlar doğrudan `https://api.bonero.tr` üzerinden gönderilir:
 
 ```tsx
 import { useForm } from "@linqon/bonero-core";
@@ -119,49 +100,57 @@ const definition = await form.get("iletisim");
 await form.submit("iletisim", { ad: "Ali", email: "ali@ornek.com" });
 ```
 
-## Server Components (Next.js)
+## Server API (Next.js)
 
 ```tsx
 import {
-  resolveBoneroConfig,
-  fetchDatasetData,
+  Bonero,
+  getBoneroConfig,
+  getArticles,
+  getArticle,
+  resolveInitialData,
 } from "@linqon/bonero-core/server";
 
-const config = resolveBoneroConfig({
+const config = getBoneroConfig({
   apiKey: process.env.BONERO_API_KEY,
 });
 
 export default async function Page() {
-  const faqs = await fetchDatasetData(config, "faqs");
+  const articles = await getArticles({ type: "CONTENT", page: 1, limit: 10 });
   return (/* ... */);
 }
 ```
 
-## Bonero API kimlik doğrulama
+### Initial data (layout prefetch)
 
-Customer endpoint'leri (`/customer/*`) tenant'ı `x-api-key` header'ı ile çözer:
+```tsx
+import { Bonero } from "@linqon/bonero-core/server";
 
-```http
-GET https://api.bonero.tr/customer/datasets
-x-api-key: bnr_...
+await Bonero.prepareInitialData(
+  { apiKey: process.env.BONERO_API_KEY! },
+  {
+    faqs: { type: "dataset", source: "faqs" },
+    blog: { type: "article", articleType: "CONTENT", take: 6 },
+  },
+);
+
+const faqs = Bonero.dataSet.faqs;
 ```
 
-API anahtarı Bonero panelinden veya seed script'lerinden alınır.
-
-## API özeti
+## Export özeti
 
 | Export | Açıklama |
 |---|---|
-| `BoneroProvider` | TanStack Query + nuqs + tüm dataset prefetch |
-| `useBonero()` | `{ config, dataSet }` |
-| `useArticle()` | Makale listesi / detay |
-| `useDataSet()` | Dataset erişimi |
+| `BoneroProvider` | Dataset + form prefetch, opsiyonel analytics |
+| `useBonero()` | `{ config, dataSet, forms, isReady, isLoading, error }` |
+| `useArticle()` | Makale listesi / detay / kategoriler |
 | `useForm()` | Form tanımı ve doğrudan gönderim |
+| `useArticleCategory()` | Makale kategorileri |
 | `BONERO_API_URL` | `https://api.bonero.tr` sabiti |
 
 ### Server (`@linqon/bonero-core/server`)
 
-`boneroFetch`, `fetchDatasetData`, `fetchArticles`, `resolveBoneroConfig` ve ilgili tipler — React hook'ları içermez.
+`Bonero`, `getBoneroConfig`, `getArticles`, `getArticle`, `resolveInitialData`, `generateBoneroSitemap` ve ilgili tipler — React hook'ları içermez.
 
 ## Geliştirme
 
@@ -170,6 +159,63 @@ npm install
 npm run build
 npm run dev
 npm run typecheck
+```
+
+### Yerel geliştirme (yalc)
+
+`file:` bağımlılığı veya workspace link'i commit'lenmemeli; CI/CD ve diğer geliştiriciler npm registry sürümünü kullanmalı. Yerel `bonero-core` değişikliklerini tüketici projede test etmek için [yalc](https://github.com/wclr/yalc) kullanın.
+
+**bonero-core** (bu repo):
+
+```bash
+npm run yalc:publish   # ilk kez yerel yalc store'a yayınla
+npm run yalc:push      # değişiklikten sonra bağlı projelere gönder
+npm run dev:yalc       # watch + her build sonrası otomatik push
+```
+
+**Tüketici proje** (`package.json` örneği — `leemes-nextjs-1` ile aynı desen):
+
+```json
+{
+  "scripts": {
+    "link:bonero-core": "yalc link @linqon/bonero-core",
+    "unlink:bonero-core": "yalc remove @linqon/bonero-core && npm install @linqon/bonero-core@^0.4.0"
+  },
+  "dependencies": {
+    "@linqon/bonero-core": "^0.4.0"
+  },
+  "devDependencies": {
+    "yalc": "^1.0.0-pre.53"
+  }
+}
+```
+
+Tüketici `.gitignore` dosyasına ekleyin:
+
+```
+.yalc
+yalc.lock
+```
+
+Yerel link:
+
+```bash
+npm run link:bonero-core
+```
+
+Registry sürümüne dön:
+
+```bash
+npm run unlink:bonero-core
+```
+
+> `yalc link` / `yalc remove` sonrası oluşan `package.json` ve `package-lock.json` değişikliklerini commit etmeyin.
+
+## Yayınlama
+
+```bash
+npm run build
+npm publish
 ```
 
 ## Lisans

@@ -1,6 +1,6 @@
 {
   "name": "@linqon/bonero-core",
-  "version": "0.3.1",
+  "version": "0.4.5",
   "description": "Bonero API client — TanStack Query hooks, dataset erişimi ve form yönetimi",
   "license": "MIT",
   "type": "module",
@@ -19,31 +19,54 @@
       "import": "./dist/server.js",
       "require": "./dist/server.js",
       "default": "./dist/server.js"
+    },
+    "./provider": {
+      "types": "./src/bonero.provider.entry.tsx",
+      "import": "./src/bonero.provider.entry.tsx",
+      "default": "./src/bonero.provider.entry.tsx"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "README.md"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node scripts/add-use-client.js",
     "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit"
+    "dev:yalc": "tsup --watch --onSuccess \"yalc push\"",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build",
+    "yalc:publish": "npm run build && yalc publish",
+    "yalc:push": "npm run build && yalc push"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.0.0",
+    "next": "^14.0.0 || ^15.0.0 || ^16.0.0",
     "nuqs": "^2.0.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "server-only": "^0.0.1"
+  },
   "devDependencies": {
     "@tanstack/react-query": "^5.90.12",
+    "@types/node": "^22.15.29",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "next": "^16.0.0",
     "nuqs": "^2.8.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "yalc": "^1.0.0-pre.53"
   },
   "keywords": [
     "bonero",
