@@ -31,11 +31,12 @@ export function useForm() {
           "Content-Type": "application/json",
           "x-api-key": config.apiKey,
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ data: values }),
       });
 
       if (!response.ok) {
-        throw new Error("Form gönderilemedi.");
+        const body = await response.text().catch(() => "");
+        throw new Error(body ? `Form gönderilemedi: ${body.slice(0, 200)}` : "Form gönderilemedi.");
       }
     },
     [config.apiKey, config.apiUrl],

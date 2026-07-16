@@ -6,17 +6,21 @@ import type {
   BoneroResolvedInitialData,
   DataSetAccessor,
 } from "../types";
+import { getBoneroConfig } from "../config";
 import { createBoneroAccessor, type BoneroAccessor } from "./accessor";
-import { getBoneroRequestStore, resolveBoneroRequestStore, type BoneroRequestStore } from "./request-store";
+import {
+  getBoneroRequestStore,
+  registerBoneroInitialDataSchema,
+  resolveBoneroRequestStore,
+  type BoneroRequestStore,
+} from "./request-store";
 
 let currentConfig: BoneroConfig | null = null;
 let currentAccessor: BoneroAccessor | null = null;
 
 function ensureConfigured(): BoneroConfig {
   if (!currentConfig) {
-    throw new Error(
-      "Bonero.configure çağrılmamış. BoneroRoot veya layout'ta apiKey ile yapılandırın.",
-    );
+    currentConfig = getBoneroConfig();
   }
   return currentConfig;
 }
@@ -38,12 +42,16 @@ export const Bonero = {
     return currentConfig;
   },
 
-  /** Layout'ta önceden yüklenmiş veri — önce `prepareInitialData` veya `resolveBoneroRequestStore` çağrılmalı. */
+  /**
+   * Layout'taki BoneroProvider'ın resolve ettiği initial data.
+   * Senkron — provider prepare etmeden erişilirse hata fırlatır.
+   * Sayfada: `const { latestBlog } = Bonero.initialData`
+   */
   get initialData(): BoneroResolvedInitialData {
     const requestStore = getBoneroRequestStore();
     if (!requestStore) {
       throw new Error(
-        "Bonero.initialData henüz hazır değil. Layout'ta Bonero.prepareInitialData çağırın veya sayfada await getTafuBoneroStore() kullanın.",
+        "Bonero.initialData hazır değil. Layout'ta <BoneroProvider initialData={...}> kullanın.",
       );
     }
     return requestStore.initialData;
@@ -53,10 +61,14 @@ export const Bonero = {
     const requestStore = getBoneroRequestStore();
     if (!requestStore) {
       throw new Error(
-        "Bonero.dataSet henüz hazır değil. Layout'ta Bonero.prepareInitialData çağırın veya sayfada await getTafuBoneroStore() kullanın.",
+        "Bonero.dataSet hazır değil. Layout'ta <BoneroProvider initialData={...}> kullanın.",
       );
     }
     return requestStore.dataSet;
+  },
+
+  registerInitialData(schema: BoneroInitialDataConfig): void {
+    registerBoneroInitialDataSchema(schema);
   },
 
   async prepareInitialData(

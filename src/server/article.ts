@@ -13,7 +13,11 @@ function client() {
 
 /** SSR — paginated makale listesi */
 export async function getArticles(params: ArticleFetchParams = {}): Promise<ArticlesPageResult> {
-  return client().fetchArticles(params);
+  const { perPage, take, limit, ...rest } = params;
+  return client().fetchArticles({
+    ...rest,
+    limit: limit ?? perPage ?? take,
+  });
 }
 
 /** SSR — tek makale */

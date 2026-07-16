@@ -1,4 +1,6 @@
 import { createBoneroClient } from "../util/bonero.client";
+import { getBoneroConfig } from "../config";
+import { Bonero } from "./bonero";
 import type { BoneroArticleSummary, BoneroConfig } from "../types";
 
 export type SitemapEntry = {
@@ -41,10 +43,11 @@ export function buildSitemapFromArticles(
 }
 
 export async function generateBoneroSitemap(
-  config: BoneroConfig,
   options: { siteUrl: string; staticPaths?: string[] },
+  config?: BoneroConfig,
 ): Promise<SitemapEntry[]> {
-  const client = createBoneroClient(config);
+  const resolvedConfig = config ?? Bonero.config ?? getBoneroConfig();
+  const client = createBoneroClient(resolvedConfig);
   const { articles } = await client.fetchArticlesAll();
   return buildSitemapFromArticles(articles ?? [], options);
 }

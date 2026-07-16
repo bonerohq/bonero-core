@@ -1,24 +1,19 @@
-import type { BoneroArticle } from "../../types";
-import {
-  getArticleBySlug,
-  getArticleCategories,
-  getArticlePage,
-  type ArticlePageParams,
-} from "./article.data";
+import type { ArticleFetchParams, ArticlesPageResult, BoneroArticle, BoneroArticleCategory } from "../../types";
+import { getArticle, getArticleCategories, getArticles } from "./article.data";
 
-export type ArticleSSRFetchParams = ArticlePageParams;
+export type ArticleSSRFetchParams = ArticleFetchParams;
 
-type ArticlePageResult = { data: Awaited<ReturnType<typeof getArticlePage>> };
+type ArticlePageResult = { data: ArticlesPageResult };
 type ArticleDetailResult = { data: BoneroArticle | null };
-type ArticleCategoriesResult = { data: Awaited<ReturnType<typeof getArticleCategories>> };
+type ArticleCategoriesResult = { data: BoneroArticleCategory[] };
 
 export function useArticle() {
   async function fetch(params: ArticleSSRFetchParams = {}): Promise<ArticlePageResult> {
-    return { data: await getArticlePage(params) };
+    return { data: await getArticles(params) };
   }
 
-  async function get(slug: string, type?: BoneroArticle["type"]): Promise<ArticleDetailResult> {
-    return { data: await getArticleBySlug(slug, type) };
+  async function get(slug: string): Promise<ArticleDetailResult> {
+    return { data: await getArticle(slug) };
   }
 
   async function fetchCategories(): Promise<ArticleCategoriesResult> {

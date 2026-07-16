@@ -41,10 +41,16 @@ export type BoneroArticle = {
 
 export type ArticleFetchParams = {
   page?: number;
+  /** @alias limit — aynı şey, sayfa başına öğe sayısı */
+  perPage?: number;
   limit?: number;
   type?: BoneroArticle["type"];
   categorySlug?: string;
   search?: string;
+  /** Mevcut slug'ı öneri/benzer listelerde hariç tutmak için */
+  excludeSlug?: string;
+  /** Kaç adet döneceğini belirtir (limit/perPage ile aynı, daha okunaklı). */
+  take?: number;
 };
 
 export type ArticlesPageResult = {

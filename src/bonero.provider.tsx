@@ -13,23 +13,20 @@ interface BoneroProviderProps {
   pixelId?: string;
   tagManagerId?: string;
   apiUrl?: string;
+  preloadedData?: BoneroPreloadData;
 }
 
-export function BoneroProviderClient({
-  children,
-  apiKey,
-  apiUrl,
-  pixelId,
-  tagManagerId,
-}: BoneroProviderProps) {
+export function BoneroProviderClient({ children, apiKey, apiUrl, pixelId, tagManagerId, preloadedData }: BoneroProviderProps) {
   const config = useMemo<BoneroConfig>(() => ({ apiKey, apiUrl }), [apiKey, apiUrl]);
   const client = useMemo(() => createBoneroClient(config), [config]);
 
-  const [data, setData] = useState<BoneroPreloadData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [data, setData] = useState<BoneroPreloadData | null>(preloadedData ?? null);
+  const [isLoading, setIsLoading] = useState(preloadedData === undefined);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (preloadedData) return;
+
     let cancelled = false;
 
     client
@@ -52,7 +49,7 @@ export function BoneroProviderClient({
     return () => {
       cancelled = true;
     };
-  }, [client]);
+  }, [client, preloadedData]);
 
   const contextValue = useMemo<BoneroContextValue>(
     () => ({
@@ -69,9 +66,7 @@ export function BoneroProviderClient({
 
   return (
     <BoneroContext.Provider value={contextValue}>
-      {pixelId && tagManagerId ? (
-        <SiteAnalytics gtmId={tagManagerId} metaPixelId={pixelId} />
-      ) : null}
+      {pixelId && tagManagerId ? <SiteAnalytics gtmId={tagManagerId} metaPixelId={pixelId} /> : null}
       {!showContent ? <BoneroLoading /> : null}
       {showContent ? children : null}
     </BoneroContext.Provider>

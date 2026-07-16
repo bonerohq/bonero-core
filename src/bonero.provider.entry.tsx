@@ -1,8 +1,9 @@
 import "server-only";
 
 import type { ReactNode } from "react";
-import type { BoneroInitialDataConfig } from "./types";
+import type { BoneroInitialDataConfig, BoneroResolvedInitialData } from "./types";
 import { getBoneroConfig } from "./config";
+import { createBoneroClient } from "./util/bonero.client";
 import { Bonero } from "./server/bonero";
 import { BoneroProviderClient } from "./bonero.provider";
 
@@ -28,8 +29,13 @@ export async function BoneroProvider({
   tagManagerId,
 }: BoneroProviderProps) {
   const config = getBoneroConfig({ apiKey, apiUrl });
+  const client = createBoneroClient(config);
 
-  await Bonero.prepareInitialData(config, initialData);
+  Bonero.registerInitialData(initialData);
+  const [preloadedData] = await Promise.all([
+    client.preloadSiteData(),
+    Bonero.prepareInitialData(config, initialData),
+  ]);
 
   return (
     <BoneroProviderClient
@@ -37,8 +43,11 @@ export async function BoneroProvider({
       apiUrl={config.apiUrl}
       pixelId={pixelId ?? process.env.NEXT_PUBLIC_BONERO_META_PIXEL_ID}
       tagManagerId={tagManagerId ?? process.env.NEXT_PUBLIC_BONERO_GTM_ID}
+      preloadedData={preloadedData}
     >
       {children}
     </BoneroProviderClient>
   );
 }
+
+export type { BoneroResolvedInitialData };

@@ -121,20 +121,35 @@ export default async function Page() {
 }
 ```
 
-### Initial data (layout prefetch)
+### Initial data (provider → context)
+
+Şema yalnızca layout'taki `BoneroProvider`'a verilir. Provider resolve eder ve
+client context'e yükler. Sayfada `resolveInitialData` / `await` yok:
 
 ```tsx
-import { Bonero } from "@linqon/bonero-core/server";
+// app/layout.tsx
+<BoneroProvider initialData={siteInitialData} apiKey={process.env.BONERO_API_KEY}>
+  {children}
+</BoneroProvider>
+```
 
-await Bonero.prepareInitialData(
-  { apiKey: process.env.BONERO_API_KEY! },
-  {
-    faqs: { type: "dataset", source: "faqs" },
-    blog: { type: "article", articleType: "CONTENT", take: 6 },
-  },
-);
+```tsx
+// herhangi bir client component
+"use client";
+import { useBonero } from "@linqon/bonero-core";
 
-const faqs = Bonero.dataSet.faqs;
+export function HomeBlog() {
+  const { initialData } = useBonero();
+  const articles = initialData.latestBlog?.articles ?? [];
+  return /* ... */;
+}
+```
+
+```tsx
+// app/page.tsx — data çekmez
+export default function Page() {
+  return <HomeBlog />;
+}
 ```
 
 ## Export özeti
