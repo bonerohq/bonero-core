@@ -1,6 +1,6 @@
 {
   "name": "@linqon/bonero-core",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "Bonero API client — TanStack Query hooks, dataset erişimi ve form yönetimi",
   "license": "MIT",
   "type": "module",
@@ -19,6 +19,12 @@
       "import": "./dist/server.js",
       "require": "./dist/server.js",
       "default": "./dist/server.js"
+    },
+    "./middleware": {
+      "types": "./dist/middleware.d.ts",
+      "import": "./dist/middleware.js",
+      "require": "./dist/middleware.js",
+      "default": "./dist/middleware.js"
     },
     "./provider": {
       "types": "./src/bonero.provider.entry.tsx",

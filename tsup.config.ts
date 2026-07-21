@@ -11,7 +11,7 @@ const shared = {
 export default defineConfig([
   {
     ...shared,
-    entry: ["src/server.ts"],
+    entry: ["src/server.ts", "src/middleware.ts"],
     clean: true,
   },
   {

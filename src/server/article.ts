@@ -3,6 +3,7 @@ import { getBoneroConfig } from "../config";
 import { createBoneroClient } from "../util/bonero.client";
 import type { ArticleFetchParams, BoneroArticle, BoneroArticleCategory, ArticlesPageResult } from "../types";
 import { Bonero } from "./bonero";
+import { applyBoneroNoCachePolicy } from "./no-cache";
 import { getBoneroRequestStore } from "./request-store";
 
 function client() {
@@ -13,6 +14,7 @@ function client() {
 
 /** SSR — paginated makale listesi */
 export async function getArticles(params: ArticleFetchParams = {}): Promise<ArticlesPageResult> {
+  await applyBoneroNoCachePolicy();
   const { perPage, take, limit, ...rest } = params;
   return client().fetchArticles({
     ...rest,
@@ -22,6 +24,7 @@ export async function getArticles(params: ArticleFetchParams = {}): Promise<Arti
 
 /** SSR — tek makale */
 export const getArticle = cache(async (slug: string): Promise<BoneroArticle | null> => {
+  await applyBoneroNoCachePolicy();
   try {
     return await client().fetchArticle(slug);
   } catch {
@@ -31,6 +34,7 @@ export const getArticle = cache(async (slug: string): Promise<BoneroArticle | nu
 
 /** SSR — makale kategorileri */
 export const getArticleCategories = cache(async (): Promise<BoneroArticleCategory[]> => {
+  await applyBoneroNoCachePolicy();
   try {
     const { categories } = await client().fetchArticleCategories();
     return categories;

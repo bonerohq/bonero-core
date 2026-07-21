@@ -5,6 +5,7 @@ import type { BoneroInitialDataConfig, BoneroResolvedInitialData } from "./types
 import { getBoneroConfig } from "./config";
 import { createBoneroClient } from "./util/bonero.client";
 import { Bonero } from "./server/bonero";
+import { applyBoneroNoCachePolicy } from "./server/no-cache";
 import { BoneroProviderClient } from "./bonero.provider";
 
 type BoneroProviderProps = {
@@ -14,6 +15,12 @@ type BoneroProviderProps = {
   apiUrl?: string;
   pixelId?: string;
   tagManagerId?: string;
+  /**
+   * URL'de `?no-cache` varken SSR / Data Cache'i kırar (middleware ile birlikte).
+   * `headers()` okuduğu için route'u dynamic yapar. Tam statik site için `false` verin.
+   * @default true
+   */
+  noCacheParam?: boolean;
 };
 
 function readClientApiKey(serverApiKey: string): string {
@@ -27,7 +34,12 @@ export async function BoneroProvider({
   apiUrl,
   pixelId,
   tagManagerId,
+  noCacheParam = true,
 }: BoneroProviderProps) {
+  if (noCacheParam) {
+    await applyBoneroNoCachePolicy();
+  }
+
   const config = getBoneroConfig({ apiKey, apiUrl });
   const client = createBoneroClient(config);
 

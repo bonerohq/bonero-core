@@ -9,6 +9,7 @@ import type {
   BoneroForm,
   BoneroPreloadData,
 } from "../types";
+import { getBoneroRequestNoStore } from "./fetch-no-store";
 
 const DEFAULT_API_URL = "https://api.bonero.tr";
 
@@ -24,8 +25,10 @@ export function createBoneroClient(config: BoneroConfig) {
   const baseUrl = `${config.apiUrl ?? DEFAULT_API_URL}/customer`;
 
   async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+    const cache = init?.cache ?? (getBoneroRequestNoStore() ? "no-store" : undefined);
     const response = await fetch(`${baseUrl}${path}`, {
       ...init,
+      ...(cache ? { cache } : {}),
       headers: {
         "Content-Type": "application/json",
         "x-api-key": config.apiKey,

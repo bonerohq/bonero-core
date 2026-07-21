@@ -10,6 +10,7 @@ Bonero Customer API için React ve Next.js istemci paketi. Provider tabanlı dat
 - **Client hooks:** `useBonero`, `useArticle`, `useArticleCategory`, `useForm`.
 - **Sunucu tarafı (Server Components / SSR):** `@linqon/bonero-core/server` altında `getArticles`, `getArticle`, `getArticleCategories`, `Bonero` accessor, `resolveInitialData` ve `generateBoneroSitemap`.
 - **React `cache` ile otomatik deduplication:** Aynı render döngüsünde tekrarlayan API çağrıları tek seferde yapılır.
+- **`?no-cache` ile SSR cache bypass:** URL'de param varken Data Cache / Full Route Cache kırılır, taze CMS verisi gelir.
 - **Initial data desteği:** Layout'tan `BoneroProvider`'a verilen şema, sunucuda çözülüp client context'e aktarılır. Sayfalar data çekmez, sadece context'ten okur.
 - **Tip güvenliği:** TypeScript tipleri tüm API yüzeyinde dışa aktarılır.
 
@@ -124,6 +125,25 @@ export function SiteFooter() {
 | `pixelId` | `string` | Hayır | Meta Pixel ID |
 | `tagManagerId` | `string` | Hayır | Google Tag Manager ID |
 | `initialData` | `BoneroInitialDataConfig` | Hayır | Layout seviyesinde sunucuda çözülecek veri şeması |
+| `noCacheParam` | `boolean` | Hayır | `?no-cache` ile SSR cache bypass. Varsayılan: `true`. Tam statik site için `false` |
+
+### `?no-cache` — SSR cache bypass
+
+URL'de `?no-cache` (örn. `/blog?no-cache`) varken Bonero API `fetch` çağrıları `cache: "no-store"` ile yapılır ve Next Full Route Cache kırılır; CMS'teki en güncel veri gelir.
+
+Layout `searchParams` görmediği için middleware ekleyin:
+
+```ts
+// middleware.ts
+import { NextResponse, type NextRequest } from "next/server";
+import { boneroNoCacheMiddleware } from "@linqon/bonero-core/middleware";
+
+export function middleware(request: NextRequest) {
+  return boneroNoCacheMiddleware(request) ?? NextResponse.next();
+}
+```
+
+Vercel'de `x-invoke-query` üzerinden de algılanır; yine de middleware önerilir.
 
 ### Ortam değişkenleri
 
