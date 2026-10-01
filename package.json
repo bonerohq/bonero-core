@@ -1,6 +1,6 @@
 {
   "name": "@linqon/bonero-core",
-  "version": "0.4.10",
+  "version": "0.4.11",
   "description": "Bonero API client — TanStack Query hooks, dataset erişimi ve form yönetimi",
   "license": "MIT",
   "type": "module",

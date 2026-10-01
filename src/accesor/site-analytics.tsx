@@ -5,15 +5,42 @@ type SiteAnalyticsProps = {
   metaPixelId?: string;
 };
 
+function isGa4MeasurementId(id: string): boolean {
+  return /^G-[A-Z0-9]+$/i.test(id);
+}
+
+function isGtmContainerId(id: string): boolean {
+  return /^GTM-[A-Z0-9]+$/i.test(id);
+}
+
 export function SiteAnalytics({ gtmId, metaPixelId }: SiteAnalyticsProps) {
-  const gtm = gtmId?.trim() ? gtmId.trim() : undefined;
+  const googleTag = gtmId?.trim() ? gtmId.trim() : undefined;
   const pixel = metaPixelId?.trim() ? metaPixelId.trim() : undefined;
 
-  if (!gtm && !pixel) return null;
+  if (!googleTag && !pixel) return null;
+
+  const ga4Id = googleTag && isGa4MeasurementId(googleTag) ? googleTag : undefined;
+  const gtmContainerId = googleTag && isGtmContainerId(googleTag) ? googleTag : undefined;
 
   return (
     <>
-      {gtm ? (
+      {ga4Id ? (
+        <>
+          <Script
+            id="google-analytics-loader"
+            strategy="afterInteractive"
+            src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(ga4Id)}`}
+          />
+          <Script
+            id="google-analytics-config"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${ga4Id}');`,
+            }}
+          />
+        </>
+      ) : null}
+      {gtmContainerId ? (
         <Script
           id="google-tag-manager"
           strategy="afterInteractive"
@@ -22,7 +49,7 @@ export function SiteAnalytics({ gtmId, metaPixelId }: SiteAnalyticsProps) {
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','${gtm}');`,
+})(window,document,'script','dataLayer','${gtmContainerId}');`,
           }}
         />
       ) : null}
@@ -45,9 +72,9 @@ fbq('track', 'PageView');`,
         />
       ) : null}
       <noscript>
-        {gtm ? (
+        {gtmContainerId ? (
           <iframe
-            src={`https://www.googletagmanager.com/ns.html?id=${gtm}`}
+            src={`https://www.googletagmanager.com/ns.html?id=${encodeURIComponent(gtmContainerId)}`}
             height="0"
             width="0"
             style={{ display: "none", visibility: "hidden" }}
@@ -59,7 +86,7 @@ fbq('track', 'PageView');`,
             height="1"
             width="1"
             style={{ display: "none" }}
-            src={`https://www.facebook.com/tr?id=${pixel}&ev=PageView&noscript=1`}
+            src={`https://www.facebook.com/tr?id=${encodeURIComponent(pixel)}&ev=PageView&noscript=1`}
             alt=""
           />
         ) : null}
