@@ -31,9 +31,9 @@ function readClientApiKey(serverApiKey: string): string {
   return process.env.NEXT_PUBLIC_BONERO_API_KEY ?? serverApiKey;
 }
 
-function readRequestDomain(override?: string): string | undefined {
+async function readRequestDomain(override?: string): Promise<string | undefined> {
   if (override?.trim()) return override.trim().split(":")[0];
-  const headerStore = headers();
+  const headerStore = await headers();
   const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
   return host?.split(":")[0];
 }
@@ -55,7 +55,7 @@ export async function BoneroProvider({
 
   const config = getBoneroConfig({ apiKey, apiUrl });
   const client = createBoneroClient(config);
-  const requestDomain = readRequestDomain(domain);
+  const requestDomain = await readRequestDomain(domain);
 
   Bonero.registerInitialData(initialData);
   const [preloadedData] = await Promise.all([
