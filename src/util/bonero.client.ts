@@ -8,6 +8,8 @@ import type {
   BoneroDatasetData,
   BoneroForm,
   BoneroPreloadData,
+  ResolvedWebSiteIntegration,
+  WebSiteIntegration,
 } from "../types";
 import { getBoneroRequestNoStore } from "./fetch-no-store";
 
@@ -65,15 +67,29 @@ export function createBoneroClient(config: BoneroConfig) {
     fetchArticle: (slug: string) => fetchJson<BoneroArticle>(`/articles/${slug}`),
     fetchArticleCategories: () =>
       fetchJson<{ categories: BoneroArticleCategory[] }>("/article-categories"),
-    preloadSiteData: async (): Promise<BoneroPreloadData> => {
-      const [datasetsResult, formsResult] = await Promise.all([
+    fetchSiteIntegrations: (domain?: string) => {
+      const search = buildSearchParams({ domain });
+      const suffix = search.toString() ? `?${search.toString()}` : "";
+      return fetchJson<{
+        integrations: WebSiteIntegration[];
+        resolved: ResolvedWebSiteIntegration | null;
+      }>(`/site-integrations${suffix}`);
+    },
+    preloadSiteData: async (domain?: string): Promise<BoneroPreloadData> => {
+      const integrationsPath = `/site-integrations${domain ? `?domain=${encodeURIComponent(domain)}` : ""}`;
+      const [datasetsResult, formsResult, integrationsResult] = await Promise.all([
         fetchJson<{ datasets: Record<string, BoneroDatasetData> }>("/datasets/with-data"),
         fetchJson<{ forms: BoneroForm[] }>("/forms"),
+        fetchJson<{
+          integrations: WebSiteIntegration[];
+          resolved: ResolvedWebSiteIntegration | null;
+        }>(integrationsPath).catch(() => ({ integrations: [], resolved: null })),
       ]);
 
       return {
         datasets: datasetsResult.datasets,
         forms: formsResult.forms,
+        webSiteIntegrations: integrationsResult.integrations ?? [],
       };
     },
   };

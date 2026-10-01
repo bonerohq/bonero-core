@@ -85,9 +85,25 @@ export type BoneroDatasetData = {
   items: Array<Record<string, unknown>>;
 };
 
+export type WebSiteIntegration = {
+  id: string;
+  name: string;
+  domains: string[];
+  gtmId?: string | null;
+  metaPixelId?: string | null;
+  liveSupportSiteKey?: string | null;
+};
+
+export type ResolvedWebSiteIntegration = {
+  gtmId?: string;
+  metaPixelId?: string;
+  liveSupportSiteKey?: string;
+};
+
 export type BoneroPreloadData = {
   datasets: Record<string, BoneroDatasetData>;
   forms: BoneroForm[];
+  webSiteIntegrations: WebSiteIntegration[];
 };
 
 export type DatasetItem = Record<string, unknown>;
